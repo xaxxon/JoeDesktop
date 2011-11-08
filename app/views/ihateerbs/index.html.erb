@@ -1,0 +1,21 @@
+<h1>Listing ihateerbs</h1>
+
+<table>
+  <tr>
+    <th></th>
+    <th></th>
+    <th></th>
+  </tr>
+
+<% @ihateerbs.each do |ihateerb| %>
+  <tr>
+    <td><%= link_to 'Show', ihateerb %></td>
+    <td><%= link_to 'Edit', edit_ihateerb_path(ihateerb) %></td>
+    <td><%= link_to 'Destroy', ihateerb, :confirm => 'Are you sure?', :method => :delete %></td>
+  </tr>
+<% end %>
+</table>
+
+<br />
+
+<%= link_to 'New Ihateerb', new_ihateerb_path %>
