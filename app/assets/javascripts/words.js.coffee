@@ -47,42 +47,60 @@ class Desktop
             @element = $("<div class='window'></div>")
             @title_bar = $("<div class='title-bar'</div>")
             @body = $("<div class='body'></div>")
+
             @element.append(@title_bar)
             @element.append(@body)
             $('#desktop').append @element
+
+            @body.height(@element.height() - @title_bar.height())
             
             # This whole resize thing is pretty annoying
             @left_resize_bar = $("<div class='resize side left'></div>").mousedown (event) =>
-                @desktop.start_drag this, event, @element.offset
+                @desktop.start_drag this, event, (delta_x, delta_y, data) =>
+                    this.update_resize(0, delta_x, 0, 0)
             @element.append @left_resize_bar
 
             @right_resize_bar = $("<div class='resize side right'></div>").mousedown (event) =>
-                @desktop.start_drag this, event, (delta_x, delta_y, data)=>
-                    this.update_resize_right(delta_x, delta_y, data)
+                @desktop.start_drag this, event, (delta_x, delta_y, data) =>
+                    this.update_resize(0, 0, 0, delta_x)
             @element.append @right_resize_bar
             
             @top_resize_bar = $("<div class='resize corner top'></div>").mousedown (event) =>
-                @desktop.start_drag this, event, @element.offset
+                @desktop.start_drag this, event, (delta_x, delta_y, data) =>
+                    this.update_resize(delta_y, 0, 0, 0)
             
             top_left_resize = $("<div class='resize corner top-left'></div>").mousedown (event) =>
-                @desktop.start_drag this, event, @element.offset
+                event.stopPropagation()
+                @desktop.start_drag this, event, (delta_x, delta_y, data) =>
+                    this.update_resize(delta_y, delta_x, 0, 0)
             @top_resize_bar.append(top_left_resize)
             
             top_right_resize = $("<div class='resize corner top-right'></div>").mousedown (event) =>
-                @desktop.start_drag this, event, @element.offset
+                event.stopPropagation()
+                @desktop.start_drag this, event, (delta_x, delta_y, data) =>
+                    this.update_resize(delta_y, 0, 0, delta_x)
             
             @top_resize_bar.append(top_right_resize)
             @element.append @top_resize_bar
             
             @bottom_resize_bar = $("<div class='resize bottom'></div>").mousedown (event) =>
-                @desktop.start_drag this, event, @element.offset
+                @desktop.start_drag this, event, (delta_x, delta_y, data) =>
+                    console.log("Bottom")
+                    this.update_resize(0, 0, delta_y, 0)
                 
             bottom_left_resize = $("<div class='resize corner bottom-left'></div>").mousedown (event) =>
-                @desktop.start_drag this, event, @element.offset
+                event.stopPropagation()
+                @desktop.start_drag this, event, (delta_x, delta_y, data) =>
+                    this.update_resize(0, delta_x, delta_y, 0)
+                
             @bottom_resize_bar.append(bottom_left_resize)
             
             bottom_right_resize = $("<div class='resize corner bottom-right'></div>").mousedown (event) =>
-                @desktop.start_drag this, event, @element.offset
+                event.stopPropagation()
+                @desktop.start_drag this, event, (delta_x, delta_y, data) =>
+                    console.log("Bottom right")
+                    this.update_resize(0, 0, delta_y, delta_x)
+                
             @bottom_resize_bar.append(bottom_right_resize)
             @element.append @bottom_resize_bar
             # END annoying resize bar stuff
@@ -107,14 +125,26 @@ class Desktop
         start_drag: ->
             @element.addClass("dragging")
             
-        # only good for drags, not resizes
+        # move the entire window
         update_position: (delta_x, delta_y, data) ->
             new_x = @element.offset().left + delta_x
             new_y = @element.offset().top + delta_y
             @element.offset({top: new_y, left: new_x})
+                        
+        update_resize:(delta_top, delta_left, delta_bottom, delta_right) ->
+            new_top = @element.offset().top + delta_top
+            new_left = @element.offset().left + delta_left
+            @element.width(@element.width() + (delta_right - delta_left))
+            @element.height(@element.height() + (delta_bottom - delta_top))
+            @element.offset({top: new_top, left: new_left})
+            this.update_body()
+
             
-        update_resize_right: (delta_x, delta_y, data) ->
-            @element.width(@element.width() + delta_x)
+        # update the size of the body section based on the current window sizes
+        update_body: ->
+            console.log(@element.height() + " : " + @title_bar.height())
+            @body.height(@element.height() - @title_bar.height())
+            @body.width(@element.width())   
                
         end_drag: ->
             @element.removeClass("dragging")

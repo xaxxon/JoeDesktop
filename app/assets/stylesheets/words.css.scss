@@ -85,8 +85,6 @@
         }
     }
     
-    
-    
     .title-bar {
       background-color: #55c;
       height: 10px;
@@ -98,7 +96,6 @@
     
     .body {
       background-color: green;
-      height: 30px;
       &.dragging {
         display: none
       }
