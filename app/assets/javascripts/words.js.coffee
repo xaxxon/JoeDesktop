@@ -1,3 +1,7 @@
+### BUGS
+# drag right side past left, then drag back to the right.  Oops.
+
+
 
 class Desktop
     # TODO: rename @parent to @desktop
