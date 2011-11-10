@@ -2,6 +2,12 @@
 // They will automatically be included in application.css.
 // You can use Sass (SCSS) here: http://sass-lang.com/
 
+@mixin drop-shadow($vertical, $horizontal, $size, $color) {
+    -moz-box-shadow: $vertical $horizontal $size $color;
+    -webkit-box-shadow: $vertical $horizontal $size $color;
+    box-shadow: $vertical $horizontal $size $color;
+}
+
 #desktop {
   background-color: blue;
   height: 100%;
@@ -12,9 +18,10 @@
   padding: 0;
   
   .window {
+    @include drop-shadow(5px, 5px, 5px, black);
     height: 100px;
     width: 100px;
-    background-color: purple;
+    background-color: white;
     overflow: auto;
     position: absolute;
     left: 100px;
@@ -89,18 +96,19 @@
       background-color: #55c;
       height: 10px;
       cursor: move;
-      &.dragging {
-        background-color: #55f;
-      }
     }
     
     .body {
       background-color: green;
+      display: relative;
       &.dragging {
         display: none
       }
     }
     &.dragging {
+        .title-bar {
+            background-color: #55f;
+        }
         .body {
             display: none;
         }
