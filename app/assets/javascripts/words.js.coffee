@@ -1,20 +1,33 @@
-# BUGS
-# drag right side past left, then drag back to the right.  Oops.
-
+# BUGS / TODO
+# min height / min width
+# window stacking order
+#  - proof of concept z-index done, but auto arranging not yet done
 
 
 class Desktop
     # TODO: rename @parent to @desktop
     constructor: (@parent) ->
-        @windows = []
-        # @parent must be specified
         alert("Parent must be specified") unless @parent
+        @windows = [] # ordered list of windows [0] is on top
         
     # factory method for creating a new window
-    new_window: (@window_name) ->
-        window = new Window(this)
-        #@windows.push window
-        #@parent.append(window.element)
+    new_window: (properties) ->
+        window = new Window(this, properties)
+        @windows.push window
+        @parent.append(window.element)
+        # Need to listen for clicks on the window to bring it to the front
+        window.mousedown (window, event) => this.window_click(window, event)
+        
+    window_click: (clicked_window, event) ->
+        z_index = 0
+        new_window_order = []
+        new_window_order.push window for window in @windows when window isnt clicked_window
+        new_window_order.push clicked_window
+        @windows = new_window_order
+        # set the z-index on the windows based on their new relative positions
+        @windows[index].z_index(index) for index in [0...@windows.length]
+        
+        
 
     # starts a drag event
     #  - draggable: the object that will be dragged
@@ -39,24 +52,27 @@ class Desktop
         @parent.unbind("mousemove").unbind("mouseup").unbind("mouseout")
         @draggable.end_drag()
 
-        
 
     class Window
-        constructor: (@desktop) ->
+        constructor: (@desktop, properties) ->
             # @desktop must be specified
             alert('desktop must be specified') unless @desktop
             @element = $("<div class='window'></div>")
             @title_bar = $("<div class='title-bar'</div>")
             @body = $("<div class='body'></div>")
             
+            @element.css('z-index', properties['z']) if properties['z']
+            
+            initial_width = properties['width'] || 200
+            initial_height = properties['height'] || 200
+            
             @top = 20
             @left = 20
-            @bottom = 200
-            @right = 200
+            @bottom = @top + initial_height
+            @right = @left + initial_width
 
             @element.append(@title_bar)
             @element.append(@body)
-            $('#desktop').append @element
 
             @body.height(@element.height() - @title_bar.height())
             
@@ -115,6 +131,16 @@ class Desktop
                     
             this.update_window()
 
+        # other things can register for events on the window
+        mousedown: (callback) =>
+            @element.mousedown (event) => 
+                callback(this, event)
+
+        # optionally sets and always returns the current/new z-index
+        z_index: (z_index) ->
+            @element.css('z-index', z_index) if z_index?
+            return @element.css('z-index')
+
         element: ->
             @element
 
@@ -157,8 +183,12 @@ class Desktop
 
 $(->
     desktop = new Desktop($('#desktop'))
-#    desktop.new_window()
-    desktop.new_window()
+    desktop.new_window({width: 100, height: 300, z: 10})
+    desktop.new_window({width: 200, height: 200, z: 10})
+    desktop.new_window({width: 250, height: 150, z: 10})
+    desktop.new_window({width: 300, height: 100, z: 50})
+    
+
 )
 
 
