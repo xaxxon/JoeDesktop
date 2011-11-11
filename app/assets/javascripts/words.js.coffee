@@ -1,7 +1,5 @@
 # BUGS / TODO
 # min height / min width
-# window stacking order
-#  - proof of concept z-index done, but auto arranging not yet done
 
 
 class Desktop
@@ -21,9 +19,17 @@ class Desktop
     window_click: (clicked_window, event) ->
         z_index = 0
         new_window_order = []
-        new_window_order.push window for window in @windows when window isnt clicked_window
+        for window in @windows when window isnt clicked_window
+            new_window_order.push window 
+            console.log "Deselecting window"
+            window.selected(false)
+            
         new_window_order.push clicked_window
+        console.log "Selecting window"
+        clicked_window.selected(true)
+        
         @windows = new_window_order
+
         # set the z-index on the windows based on their new relative positions
         @windows[index].z_index(index) for index in [0...@windows.length]
         
@@ -54,11 +60,12 @@ class Desktop
 
 
     class Window
+        TITLE_BAR_HEIGHT: 25
         constructor: (@desktop, properties) ->
             # @desktop must be specified
             alert('desktop must be specified') unless @desktop
             @element = $("<div class='window'></div>")
-            @title_bar = $("<div class='title-bar'</div>")
+            @title_bar = $("<div class='title-bar'</div>").height(@TITLE_BAR_HEIGHT)
             @body = $("<div class='body'></div>")
             
             @element.css('z-index', properties['z']) if properties['z']
@@ -128,7 +135,7 @@ class Desktop
             @title_bar.mousedown (event) =>
                 @desktop.start_drag this, event, (nil, nil, delta_x, delta_y)=>
                     this.update_position(delta_x, delta_y)
-                    
+            
             this.update_window()
 
         # other things can register for events on the window
@@ -149,10 +156,10 @@ class Desktop
 
         body: ->
             @body
-                        
+
         start_drag: ->
             @element.addClass("dragging")
-            
+
         # move the entire window
         update_position: (delta_x, delta_y) ->
             @top += delta_y
@@ -163,7 +170,7 @@ class Desktop
                    
         # Change the aspect ratio of the window     
         # position: top/left/bottom/right are keys
-        update_resize:(position) ->        
+        update_resize:(position) ->
             @top = position['top'] if position['top']
             @left = position['left'] if position['left']
             @bottom = position['bottom'] if position['bottom']
@@ -180,6 +187,19 @@ class Desktop
                
         end_drag: ->
             @element.removeClass("dragging")
+            
+        # sets whether this window is selected if is_selected is specified
+        # returns whether this window is selected
+        selected: (is_selected) ->
+            if is_selected?
+                @is_selected = is_selected
+                
+            if @is_selected
+                @element.addClass('selected')
+            else
+                @element.removeClass('selected')
+            @is_selected
+        
 
 $(->
     desktop = new Desktop($('#desktop'))
