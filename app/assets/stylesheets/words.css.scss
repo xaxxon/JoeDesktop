@@ -20,9 +20,9 @@
   .window {
     @include drop-shadow(2px, 2px, 4px, black);
     &.selected {
-        @include drop-shadow(3px, 3px, 7px, black);
+        @include drop-shadow(2px, 2px, 9px, black);
     }
-        
+    
     height: 100px;
     width: 100px;
     background-color: white;
