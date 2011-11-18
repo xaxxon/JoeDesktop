@@ -21,11 +21,11 @@ class Desktop
         new_window_order = []
         for window in @windows when window isnt clicked_window
             new_window_order.push window 
-            console.log "Deselecting window"
+            #console.log "Deselecting window"
             window.selected(false)
             
         new_window_order.push clicked_window
-        console.log "Selecting window"
+        #console.log "Selecting window"
         clicked_window.selected(true)
         
         @windows = new_window_order
@@ -41,9 +41,19 @@ class Desktop
     start_drag: (@draggable, drag_start_event, @drag_callback) ->
         # watch for mouse movements anywhere in the window - sudden movements can
         #   move the cursor out of any smaller region too quickly
+
         @parent.mousemove (event) => this.update_drag event
+        @parent.bind('touchmove', (event) => 
+            this.update_drag event
+            event.preventDefault()
+        )
+
         @parent.mouseup (event) => this.end_drag event
         #@parent.mouseout (event) => this.end_drag event
+        
+        @parent.bind('touchend', (event) => 
+            this.end_drag event)
+        
         @draggable.start_drag()
         # When update_drag gets called, the initial even will be the "previous" one
         @previous_drag_event = drag_start_event
@@ -135,6 +145,12 @@ class Desktop
             @title_bar.mousedown (event) =>
                 @desktop.start_drag this, event, (nil, nil, delta_x, delta_y)=>
                     this.update_position(delta_x, delta_y)
+                    
+            @title_bar.bind 'touchstart', (event) =>
+                console.log("Got touchstart")
+                @desktop.start_drag this, event, (nil, nil, delta_x, delta_y) =>
+                    this.update_position delta_x, delta_y
+                    
             
             this.update_window()
 

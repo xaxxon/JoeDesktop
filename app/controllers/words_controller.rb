@@ -2,9 +2,9 @@ class WordsController < ApplicationController
 
     def index
     
-	File.open("/usr/share/dict/words") do |io|
+	    File.open("/usr/share/dict/words") do |io|
 
-	end
+	  end
 
 	render :text => 'hi'
 
