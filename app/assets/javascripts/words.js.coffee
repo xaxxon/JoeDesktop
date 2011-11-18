@@ -21,11 +21,9 @@ class Desktop
         new_window_order = []
         for window in @windows when window isnt clicked_window
             new_window_order.push window 
-            #console.log "Deselecting window"
             window.selected(false)
             
         new_window_order.push clicked_window
-        #console.log "Selecting window"
         clicked_window.selected(true)
         
         @windows = new_window_order
@@ -52,6 +50,7 @@ class Desktop
         #@parent.mouseout (event) => this.end_drag event
         
         @parent.bind('touchend', (event) => 
+            console.error "touchend"
             this.end_drag event)
         
         @draggable.start_drag()
@@ -66,6 +65,7 @@ class Desktop
 
     end_drag: (event) ->
         @parent.unbind("mousemove").unbind("mouseup").unbind("mouseout")
+        @parent.unbind("touchmove").unbind("touchend")
         @draggable.end_drag()
 
 
@@ -147,7 +147,6 @@ class Desktop
                     this.update_position(delta_x, delta_y)
                     
             @title_bar.bind 'touchstart', (event) =>
-                console.log("Got touchstart")
                 @desktop.start_drag this, event, (nil, nil, delta_x, delta_y) =>
                     this.update_position delta_x, delta_y
                     
