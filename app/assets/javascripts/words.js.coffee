@@ -54,6 +54,9 @@ class Desktop
         # Need to listen for clicks on the window to bring it to the front
         window.mousedown (window, event) => this.window_click(window, event)
 
+        # Application is only allowed access to the body
+        return window.body()
+
     # Called when a window is clicked to adjust
     #   its position relative to other windows
     window_click: (clicked_window, event) ->
@@ -115,7 +118,7 @@ class Desktop
             alert('desktop must be specified') unless @desktop
             @element = $("<div class='window'></div>")
             @title_bar = $("<div class='title-bar'</div>").height(@TITLE_BAR_HEIGHT)
-            @body = $("<div class='body'></div>")
+            @body_element = $("<div class='body'></div>")
                         
             initial_width = properties['width'] || 200
             initial_height = properties['height'] || 200
@@ -126,9 +129,9 @@ class Desktop
             @right = @left + initial_width
 
             @element.append(@title_bar)
-            @element.append(@body)
+            @element.append(@body_element)
 
-            @body.height(@element.height() - @title_bar.height())
+            @body_element.height(@element.height() - @title_bar.height())
             
             # This whole resize thing is pretty annoying
             @left_resize_bar = $("<div class='resize side left'></div>").input_start (event) =>
@@ -207,7 +210,7 @@ class Desktop
             @title_bar
 
         body: ->
-            @body
+            @body_element
 
         start_drag: ->
             @element.addClass("dragging")
@@ -237,8 +240,8 @@ class Desktop
             @element.css("left", @left)
             # this doesn't work because it sets the css to position:relative which FF hates
             #@element.offset({top: @top, left: @left})
-            @body.height(@element.height() - @title_bar.height())
-            @body.width(@element.width())
+            @body_element.height(@element.height() - @title_bar.height())
+            @body_element.width(@element.width())
                
         end_drag: ->
             @element.removeClass("dragging")
@@ -274,21 +277,23 @@ class JoeApplication
 
 # test application
 class MyApplication extends JoeApplication
-    
+
     constructor: (desktop) ->
         super desktop
         console.log "Created new MyApplication"
 
     initialize: ->
-        console.log "MyApplication initialized"
-        @desktop.new_window()
+        # As far as the application is concerned, the body is the window
+        @window = @desktop.new_window()
+        console.log @window
+        @window.html("<P>HI</P>")
+        $.delay(5).ajax()
     
 
 
 $(->
     # random crap for IE user-selectable in case I want it later
     #if ($.browser.msie) $('.draggable').find(':not(input)').attr('unselectable', 'on');
-
 
     desktop = new Desktop($('#desktop'))
     desktop.register_application MyApplication

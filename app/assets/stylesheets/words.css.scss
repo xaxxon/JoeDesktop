@@ -65,6 +65,12 @@ table {
     
 }
 
+@mixin border-radius($radius) {
+    -moz-border-radius: $radius;
+    -webkit-border-radius: $radius;
+    border-radius: $radius;
+}
+
 #desktop {
   background-color: blue;
   height: 100%;
@@ -85,6 +91,8 @@ table {
   .window {
     @include user-select(none);
     @include drop-shadow(2px, 2px, 4px, black);
+    // doesn't work because chrome still draws inner elements beyond rounded corner
+    //@include border-radius(5px);
     &.selected {
         @include drop-shadow(2px, 2px, 9px, black);
     }
