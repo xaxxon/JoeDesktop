@@ -192,7 +192,7 @@ class Desktop
 
         # other things can register for events on the window
         mousedown: (callback) =>
-            @element.input_start => 
+            @element.input_start (event)=> 
                 callback(this, event)
 
         # optionally sets and always returns the current/new z-index
@@ -233,7 +233,10 @@ class Desktop
         update_window: ->
             @element.width(@right - @left)
             @element.height(@bottom - @top)
-            @element.offset({top: @top, left: @left})
+            @element.css("top", @top)
+            @element.css("left", @left)
+            # this doesn't work because it sets the css to position:relative which FF hates
+            #@element.offset({top: @top, left: @left})
             @body.height(@element.height() - @title_bar.height())
             @body.width(@element.width())
                
@@ -283,6 +286,10 @@ class MyApplication extends JoeApplication
 
 
 $(->
+    # random crap for IE user-selectable in case I want it later
+    #if ($.browser.msie) $('.draggable').find(':not(input)').attr('unselectable', 'on');
+
+
     desktop = new Desktop($('#desktop'))
     desktop.register_application MyApplication
     desktop.register_application MyApplication
