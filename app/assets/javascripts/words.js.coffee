@@ -285,5 +285,6 @@ class MyApplication extends JoeApplication
 $(->
     desktop = new Desktop($('#desktop'))
     desktop.register_application MyApplication
+    desktop.register_application MyApplication
 )
 
