@@ -2,6 +2,54 @@
 // They will automatically be included in application.css.
 // You can use Sass (SCSS) here: http://sass-lang.com/
 
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section {
+	display: block;
+}
+body {
+	line-height: 1;
+}
+ol, ul {
+	list-style: none;
+}
+blockquote, q {
+	quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+	content: '';
+	content: none;
+}
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+
+
+
+
 @mixin drop-shadow($vertical, $horizontal, $size, $color) {
     -moz-box-shadow: $vertical $horizontal $size $color;
     -webkit-box-shadow: $vertical $horizontal $size $color;
@@ -17,8 +65,16 @@
   buffer: 0;
   padding: 0;
   
+  #application-bar {
+    height: 100px;
+    width: 100%;
+    background-color: grey;
+    position: absolute;
+    bottom: 0;
+  }
+  
   .window {
-    @include drop-shadow(2px, 2px, 4px, black);
+    @include drop-shadow(2px, 2px, 4px, black);d
     &.selected {
         @include drop-shadow(2px, 2px, 9px, black);
     }
@@ -32,10 +88,10 @@
     top: 20px;
     
     .resize {
-        background-color: rgba(196,196,0,0);
+        background-color: rgba(196,196,0, 0);
         position: absolute;
-        width: 7px;
-        height: 7px;
+        width: 10px;
+        height: 10px;
     
         &.bottom {
             bottom: 0;

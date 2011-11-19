@@ -1,75 +1,114 @@
 # BUGS / TODO
 # min height / min width
 
+# jquery plugin for integrating mouse and touch events
+( ($)->
+    $.fn.input_start = (callback)->
+        this.each ->
+            $(this).bind("mousedown touchstart", callback)
+            
+    $.fn.unbind_input_start = (callback)->
+        this.each ->
+            $(this).unbind("mousedown touchstart")
+                    
+    $.fn.input_move = (callback)->
+        this.each ->
+            $(this).bind("mousemove touchmove", callback)
+            
+    $.fn.unbind_input_move = (callback)->
+        this.each ->
+            $(this).unbind("mousemove touchmove")
+            
+    $.fn.input_end = (callback)->
+        this.each ->
+            $(this).bind("mouseup touchend", callback)
+
+    $.fn.unbind_input_end = (callback)->
+        this.each ->
+            $(this).unbind("mouseup touchstart")       
+)(jQuery)
+
 
 class Desktop
-    # TODO: rename @parent to @desktop
     constructor: (@parent) ->
         alert("Parent must be specified") unless @parent
         @windows = [] # ordered list of windows [0] is on top
+        # create application bar
+        #@parent.append($("<div id='application-bar'></div>"))
         
+    load_application_from_url: (url, application_name) ->
+        $('head').append $("<script src='#{url}'></script>")
+        # Create instance of application
+        
+        
+    register_application: (application) ->
+        # Load CSS for application
+        new application(this).initialize()
+        
+
     # factory method for creating a new window
-    new_window: (properties) ->
+    new_window: (properties = {}) ->
         window = new Window(this, properties)
         @windows.push window
         @parent.append(window.element)
         # Need to listen for clicks on the window to bring it to the front
         window.mousedown (window, event) => this.window_click(window, event)
-        
+
+    # Called when a window is clicked to adjust
+    #   its position relative to other windows
     window_click: (clicked_window, event) ->
         z_index = 0
         new_window_order = []
         for window in @windows when window isnt clicked_window
-            new_window_order.push window 
+            new_window_order.push window
             window.selected(false)
-            
+
         new_window_order.push clicked_window
         clicked_window.selected(true)
-        
+
         @windows = new_window_order
 
         # set the z-index on the windows based on their new relative positions
         @windows[index].z_index(index) for index in [0...@windows.length]
-        
-        
+
 
     # starts a drag event
     #  - draggable: the object that will be dragged
     #  - drag_start_event: the event starting the drag
     start_drag: (@draggable, drag_start_event, @drag_callback) ->
-        # watch for mouse movements anywhere in the window - sudden movements can
-        #   move the cursor out of any smaller region too quickly
 
-        @parent.mousemove (event) => this.update_drag event
-        @parent.bind('touchmove', (event) => 
+        # Watch for input moves and update the part being moved
+        @parent.input_move (event) =>
             this.update_drag event
             event.preventDefault()
-        )
+        
 
-        @parent.mouseup (event) => this.end_drag event
-        #@parent.mouseout (event) => this.end_drag event
+        # watch for the drag to end and end the drag and update
+        #   the part being dragged
+        @parent.input_end (event) => this.end_drag event
         
-        @parent.bind('touchend', (event) => 
-            console.error "touchend"
-            this.end_drag event)
-        
+        # Notify the element being dragged that it is being dragged
         @draggable.start_drag()
+        
         # When update_drag gets called, the initial even will be the "previous" one
         @previous_drag_event = drag_start_event
         
+    # Called when a new movement is detected
     update_drag: (event) ->
         delta_x = event.pageX - @previous_drag_event.pageX
         delta_y = event.pageY - @previous_drag_event.pageY
         @drag_callback(event.pageX, event.pageY, delta_x, delta_y)
         @previous_drag_event = event
 
+    # When the drag ends, stop watching for move events and 
+    #   update the part being dragged that the drag has ended
     end_drag: (event) ->
-        @parent.unbind("mousemove").unbind("mouseup").unbind("mouseout")
-        @parent.unbind("touchmove").unbind("touchend")
+        @parent.unbind_input_move()
+        @parent.unbind_input_end()
         @draggable.end_drag()
 
 
-    class Window
+    class Window 
         TITLE_BAR_HEIGHT: 25
         constructor: (@desktop, properties) ->
             # @desktop must be specified
@@ -77,9 +116,7 @@ class Desktop
             @element = $("<div class='window'></div>")
             @title_bar = $("<div class='title-bar'</div>").height(@TITLE_BAR_HEIGHT)
             @body = $("<div class='body'></div>")
-            
-            @element.css('z-index', properties['z']) if properties['z']
-            
+                        
             initial_width = properties['width'] || 200
             initial_height = properties['height'] || 200
             
@@ -94,27 +131,27 @@ class Desktop
             @body.height(@element.height() - @title_bar.height())
             
             # This whole resize thing is pretty annoying
-            @left_resize_bar = $("<div class='resize side left'></div>").mousedown (event) =>
+            @left_resize_bar = $("<div class='resize side left'></div>").input_start (event) =>
                 @desktop.start_drag this, event, (x) =>
                     this.update_resize({left: x})
             @element.append @left_resize_bar
 
-            @right_resize_bar = $("<div class='resize side right'></div>").mousedown (event) =>
+            @right_resize_bar = $("<div class='resize side right'></div>").input_start (event) =>
                 @desktop.start_drag this, event, (x) =>
                     this.update_resize({right: x})
             @element.append @right_resize_bar
             
-            @top_resize_bar = $("<div class='resize corner top'></div>").mousedown (event) =>
+            @top_resize_bar = $("<div class='resize corner top'></div>").input_start (event) =>
                 @desktop.start_drag this, event, (nil, y) =>
                     this.update_resize({top: y})
             
-            top_left_resize = $("<div class='resize corner top-left'></div>").mousedown (event) =>
+            top_left_resize = $("<div class='resize corner top-left'></div>").input_start (event) =>
                 event.stopPropagation()
                 @desktop.start_drag this, event, (x, y) =>
                     this.update_resize({top: y, left: x})
             @top_resize_bar.append(top_left_resize)
             
-            top_right_resize = $("<div class='resize corner top-right'></div>").mousedown (event) =>
+            top_right_resize = $("<div class='resize corner top-right'></div>").input_start (event) =>
                 event.stopPropagation()
                 @desktop.start_drag this, event, (x, y) =>
                     this.update_resize({top: y, right: x})
@@ -122,18 +159,18 @@ class Desktop
             @top_resize_bar.append(top_right_resize)
             @element.append @top_resize_bar
             
-            @bottom_resize_bar = $("<div class='resize bottom'></div>").mousedown (event) =>
+            @bottom_resize_bar = $("<div class='resize bottom'></div>").input_start (event) =>
                 @desktop.start_drag this, event, (nil, y) =>
                     this.update_resize({bottom: y})
                 
-            bottom_left_resize = $("<div class='resize corner bottom-left'></div>").mousedown (event) =>
+            bottom_left_resize = $("<div class='resize corner bottom-left'></div>").input_start (event) =>
                 event.stopPropagation()
                 @desktop.start_drag this, event, (x, y) =>
                     this.update_resize({left: x, bottom: y})
                 
             @bottom_resize_bar.append(bottom_left_resize)
             
-            bottom_right_resize = $("<div class='resize corner bottom-right'></div>").mousedown (event) =>
+            bottom_right_resize = $("<div class='resize corner bottom-right'></div>").input_start (event) =>
                 event.stopPropagation()
                 @desktop.start_drag this, event, (x, y) =>
                     this.update_resize({bottom: y, right: x})
@@ -142,20 +179,20 @@ class Desktop
             @element.append @bottom_resize_bar
             # END annoying resize bar stuff
 
-            @title_bar.mousedown (event) =>
+            @title_bar.input_start (event) =>
                 @desktop.start_drag this, event, (nil, nil, delta_x, delta_y)=>
                     this.update_position(delta_x, delta_y)
                     
-            @title_bar.bind 'touchstart', (event) =>
-                @desktop.start_drag this, event, (nil, nil, delta_x, delta_y) =>
-                    this.update_position delta_x, delta_y
-                    
-            
+            #@title_bar.bind 'touchstart', (event) =>
+            #    @desktop.start_drag this, event, (nil, nil, delta_x, delta_y) =>
+            #        this.update_position delta_x, delta_y
+
+
             this.update_window()
 
         # other things can register for events on the window
         mousedown: (callback) =>
-            @element.mousedown (event) => 
+            @element.input_start => 
                 callback(this, event)
 
         # optionally sets and always returns the current/new z-index
@@ -184,7 +221,7 @@ class Desktop
             this.update_window()
                    
         # Change the aspect ratio of the window     
-        # position: top/left/bottom/right are keys
+        # position: top/left/bottom/dight are keys
         update_resize:(position) ->
             @top = position['top'] if position['top']
             @left = position['left'] if position['left']
@@ -216,14 +253,37 @@ class Desktop
             @is_selected
         
 
-$(->
-    desktop = new Desktop($('#desktop'))
-    desktop.new_window({width: 100, height: 300, z: 10})
-    desktop.new_window({width: 200, height: 200, z: 10})
-    desktop.new_window({width: 250, height: 150, z: 10})
-    desktop.new_window({width: 300, height: 100, z: 50})
+
+
+
+class JoeApplication
+    
+    # stores the desktop object the application is associated with
+    constructor: (@desktop) ->
+        console.log "Storing application desktop"
+        
+    # Returns the desktop object the application is associated with
+    desktop: ->
+        @desktop
     
 
-)
 
+
+# test application
+class MyApplication extends JoeApplication
+    
+    constructor: (desktop) ->
+        super desktop
+        console.log "Created new MyApplication"
+
+    initialize: ->
+        console.log "MyApplication initialized"
+        @desktop.new_window()
+    
+
+
+$(->
+    desktop = new Desktop($('#desktop'))
+    desktop.register_application MyApplication
+)
 
