@@ -14,8 +14,10 @@ Joe::Application.routes.draw do
 
   # Sample resource route (maps HTTP verbs to controller actions automatically):
   #   resources :products
+  resource :desktop do
+  end
 
-  resource :words do
+  resources :words do
   end	   
 
   # Sample resource route with options:

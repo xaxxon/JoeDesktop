@@ -287,9 +287,16 @@ class MyApplication extends JoeApplication
         @window = @desktop.new_window()
         console.log @window
         @window.html("<P>HI</P>")
-        $.delay(5).ajax()
-    
-
+        # set up a timer to start loading words
+        @update_word()
+        setInterval(( => @update_word()), 10000)
+        
+        
+    update_word: ->
+        console.log "updating word"
+        $.getJSON("/words", (data) =>
+            console.log @window
+            $(@window).html(data[0]))
 
 $(->
     # random crap for IE user-selectable in case I want it later

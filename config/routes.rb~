@@ -1,4 +1,6 @@
 Joe::Application.routes.draw do
+  resources :ihateerbs
+
   # The priority is based upon order of creation:
   # first created -> highest priority.
 
@@ -13,7 +15,8 @@ Joe::Application.routes.draw do
   # Sample resource route (maps HTTP verbs to controller actions automatically):
   #   resources :products
 
-  resource :words
+  resource :words do
+  end	   
 
   # Sample resource route with options:
   #   resources :products do
