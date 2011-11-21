@@ -1,7 +1,11 @@
 # BUGS / TODO
 # min height / min width
+# make sure window position stays in desktop
+
+
 
 # jquery plugin for integrating mouse and touch events
+#   as well as specialized geometry operations
 ( ($)->
     $.fn.input_start = (callback)->
         this.each ->
@@ -25,7 +29,17 @@
 
     $.fn.unbind_input_end = (callback)->
         this.each ->
-            $(this).unbind("mouseup touchstart")       
+            $(this).unbind("mouseup touchstart")
+                
+    
+    # Returns the total height of an element including the border
+    #   this may should include other parts of the box like padding and margin, but it doesn't yet
+    $.fn.total_height = ->
+        number = this.height() + parseInt($($('.title-bar')[0]).css("border-bottom-width"),10) + parseInt($($('.title-bar')[0]).css("border-top-width"),10)
+        return number
+        
+    $.fn.total_width = ->
+        # this hasn't been written yet
 )(jQuery)
 
 
@@ -48,9 +62,15 @@ class Desktop
 
     # factory method for creating a new window
     new_window: (properties = {}) ->
+
         window = new Window(this, properties)
         @windows.push window
+
+        # Have to update the window after adding it to the root of the DOM, 
+        #   otherwise you can't find out about the dimensions
         @parent.append(window.element)
+        window.update_window()
+        
         # Need to listen for clicks on the window to bring it to the front
         window.mousedown (window, event) => this.window_click(window, event)
 
@@ -75,7 +95,7 @@ class Desktop
         @windows[index].z_index(index) for index in [0...@windows.length]
 
 
-    # starts a drag event
+    # starts a drag events
     #  - draggable: the object that will be dragged
     #  - drag_start_event: the event starting the drag
     start_drag: (@draggable, drag_start_event, @drag_callback) ->
@@ -113,11 +133,28 @@ class Desktop
 
     class Window 
         TITLE_BAR_HEIGHT: 25
+        
+        close_window: ->
+            alert "Close"
+            
+        minimize_window: ->
+            alert "Minimize"
+            
+        maximize_window: ->
+            alert "Maximize"
+        
         constructor: (@desktop, properties) ->
             # @desktop must be specified
             alert('desktop must be specified') unless @desktop
             @element = $("<div class='window'></div>")
+            
             @title_bar = $("<div class='title-bar'</div>").height(@TITLE_BAR_HEIGHT)
+            @title_bar.append $("<div class='button close'></div>").click => @close_window()
+            @title_bar.append $("<div class='button minimize'></div>").click => @minimize_window()
+            @title_bar.append $("<div class='button maximize'></div>").click => @maximize_window()
+            
+            
+            
             @body_element = $("<div class='body'></div>")
                         
             initial_width = properties['width'] || 200
@@ -131,7 +168,8 @@ class Desktop
             @element.append(@title_bar)
             @element.append(@body_element)
 
-            @body_element.height(@element.height() - @title_bar.height())
+
+            @body_element.height(@height() - @title_bar.total_height())
             
             # This whole resize thing is pretty annoying
             @left_resize_bar = $("<div class='resize side left'></div>").input_start (event) =>
@@ -191,7 +229,8 @@ class Desktop
             #        this.update_position delta_x, delta_y
 
 
-            this.update_window()
+            # can't call update_window from here because it's not attached to 
+            #   the root of the DOM
 
         # other things can register for events on the window
         mousedown: (callback) =>
@@ -214,6 +253,9 @@ class Desktop
 
         start_drag: ->
             @element.addClass("dragging")
+
+        height: ->
+            @bottom - @top
 
         # move the entire window
         update_position: (delta_x, delta_y) ->
@@ -238,9 +280,7 @@ class Desktop
             @element.height(@bottom - @top)
             @element.css("top", @top)
             @element.css("left", @left)
-            # this doesn't work because it sets the css to position:relative which FF hates
-            #@element.offset({top: @top, left: @left})
-            @body_element.height(@element.height() - @title_bar.height())
+            @body_element.height(@height() - @title_bar.total_height())
             @body_element.width(@element.width())
                
         end_drag: ->
@@ -266,7 +306,6 @@ class JoeApplication
     
     # stores the desktop object the application is associated with
     constructor: (@desktop) ->
-        console.log "Storing application desktop"
         
     # Returns the desktop object the application is associated with
     desktop: ->
@@ -280,22 +319,20 @@ class MyApplication extends JoeApplication
 
     constructor: (desktop) ->
         super desktop
-        console.log "Created new MyApplication"
+
+    name: ->
+        "Words!"
 
     initialize: ->
         # As far as the application is concerned, the body is the window
         @window = @desktop.new_window()
-        console.log @window
         @window.html("<P>HI</P>")
         # set up a timer to start loading words
         @update_word()
-        setInterval(( => @update_word()), 10000)
-        
-        
+        #setInterval(( => @update_word()), 10000)
+
     update_word: ->
-        console.log "updating word"
         $.getJSON("/words", (data) =>
-            console.log @window
             $(@window).html(data[0]))
 
 $(->

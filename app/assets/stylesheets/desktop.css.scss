@@ -15,35 +15,35 @@ article, aside, canvas, details, embed,
 figure, figcaption, footer, header, hgroup, 
 menu, nav, output, ruby, section, summary,
 time, mark, audio, video {
-	margin: 0;
-	padding: 0;
-	border: 0;
-	font-size: 100%;
-	font: inherit;
-	vertical-align: baseline;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 100%;
+    font: inherit;
+    vertical-align: baseline;
 }
 /* HTML5 display-role reset for older browsers */
 article, aside, details, figcaption, figure, 
 footer, header, hgroup, menu, nav, section {
-	display: block;
+    display: block;
 }
 body {
-	line-height: 1;
+    line-height: 1;
 }
 ol, ul {
-	list-style: none;
+    list-style: none;
 }
 blockquote, q {
-	quotes: none;
+    quotes: none;
 }
 blockquote:before, blockquote:after,
 q:before, q:after {
-	content: '';
-	content: none;
+    content: '';
+    content: none;
 }
 table {
-	border-collapse: collapse;
-	border-spacing: 0;
+    border-collapse: collapse;
+    border-spacing: 0;
 }
 
 
@@ -71,6 +71,16 @@ table {
     border-radius: $radius;
 }
 
+@mixin gradient($color_one, $color_one_percentage, $color_two, $color_two_percentage) {
+    background-image: linear-gradient(bottom, $color_one $color_one_percentage, $color_two $color_two_percentage);
+    background-image: -o-linear-gradient(bottom, $color_one $color_one_percentage, $color_two $color_two_percentage);
+    background-image: -moz-linear-gradient(bottom, $color_one $color_one_percentage, $color_two $color_two_percentage);
+    background-image: -webkit-gradient(linear, left top, left bottom, from($color_two), to($color_one));
+    background-image: -ms-linear-gradient(bottom, $color_one $color_one_percentage, $color_two $color_two_percentage);
+}
+
+
+
 #desktop {
   background-color: blue;
   height: 100%;
@@ -83,12 +93,13 @@ table {
   #application-bar {
     height: 100px;
     width: 100%;
-    background-color: grey;
+    background-color: gray;
     position: absolute;
     bottom: 0;
   }
   
   .window {
+    border: 1px solid black;
     @include user-select(none);
     @include drop-shadow(2px, 2px, 4px, black);
     // doesn't work because chrome still draws inner elements beyond rounded corner
@@ -161,9 +172,33 @@ table {
     }
     
     .title-bar {
-      background-color: #55c;
-      height: 25px;
-      cursor: move;
+        @include gradient(rgb(32,204,227), 23%, rgb(29,64,237), 86%);
+        height: 2px;
+        cursor: move;
+        border-bottom: 3px solid black;
+        
+        .button{
+            @include border-radius(8px);
+            
+            height: 8px;
+            width: 8px;
+            float: left;
+            margin-left: 4px;
+            margin-top: 8px;
+            cursor: pointer;
+            cursor: hand;
+            
+            &.close {
+                margin-left: 12px;
+                background-color: red;
+            }
+            &.minimize {
+               background-color: yellow;
+            }
+        &.maximize {
+               background-color: green;
+            }   
+        }
     }
     
     .body {
@@ -181,6 +216,7 @@ table {
             display: none;
         }
     
+    background-color: rgba(0,0,0,0);
     }
   }
   .other{}
