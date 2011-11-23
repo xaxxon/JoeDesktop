@@ -79,7 +79,10 @@ table {
     background-image: -ms-linear-gradient(bottom, $color_one $color_one_percentage, $color_two $color_two_percentage);
 }
 
-
+@mixin cursor-pointer {
+    cursor: pointer;
+    cursor: hand;
+}
 
 #desktop {
   background-color: blue;
@@ -96,6 +99,27 @@ table {
     background-color: gray;
     position: absolute;
     bottom: 0;
+    
+    .launch-button {
+        float: left;
+        height: 80%;
+        width: 80px;
+        background-color: pink;
+        border: 2px solid black;
+    }
+    
+    .minimized-applications {
+        height: 80%;
+        background-color: purple;
+        border: 2px solid black;
+        
+        .minimized {
+            float: left;
+            border: 2px solid green;
+            @include cursor-pointer;
+            background-color: gray;
+        }
+    }
   }
   
   .window {
@@ -108,6 +132,10 @@ table {
         @include drop-shadow(2px, 2px, 9px, black);
     }
     
+    &.minimized {
+        display: none;
+    }
+    
     height: 100px;
     width: 100px;
     background-color: white;
@@ -116,11 +144,17 @@ table {
     left: 100px;
     top: 20px;
     
+    &.window.not-resizeable .resize {
+        display: none;
+    }
+    
     .resize {
         background-color: rgba(196,196,0, 0);
         position: absolute;
         width: 10px;
         height: 10px;
+        
+      
     
         &.bottom {
             bottom: 0;
@@ -178,16 +212,14 @@ table {
         border-bottom: 3px solid black;
         
         .button{
-            @include border-radius(8px);
+            @include border-radius(12px);
             
-            height: 8px;
-            width: 8px;
+            height: 12px;
+            width: 12px;
             float: left;
             margin-left: 4px;
             margin-top: 8px;
-            cursor: pointer;
-            cursor: hand;
-            
+            @include cursor-pointer;
             &.close {
                 margin-left: 12px;
                 background-color: red;

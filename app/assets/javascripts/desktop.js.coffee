@@ -1,8 +1,9 @@
 # BUGS / TODO
 # min height / min width
 # make sure window position stays in desktop
-
-
+# windows show up on top of each other when created, instead of either looking
+#   for an empty spot or offsetting each one
+# Disallow dragging when maximized
 
 # jquery plugin for integrating mouse and touch events
 #   as well as specialized geometry operations
@@ -11,7 +12,7 @@
         this.each ->
             $(this).bind("mousedown touchstart", callback)
             
-    $.fn.unbind_input_start = (callback)->
+    $.fn.unbind_input_start = ->
         this.each ->
             $(this).unbind("mousedown touchstart")
                     
@@ -19,7 +20,7 @@
         this.each ->
             $(this).bind("mousemove touchmove", callback)
             
-    $.fn.unbind_input_move = (callback)->
+    $.fn.unbind_input_move = ->
         this.each ->
             $(this).unbind("mousemove touchmove")
             
@@ -27,7 +28,7 @@
         this.each ->
             $(this).bind("mouseup touchend", callback)
 
-    $.fn.unbind_input_end = (callback)->
+    $.fn.unbind_input_end = ->
         this.each ->
             $(this).unbind("mouseup touchstart")
                 
@@ -37,19 +38,37 @@
     $.fn.total_height = ->
         number = this.height() + parseInt($($('.title-bar')[0]).css("border-bottom-width"),10) + parseInt($($('.title-bar')[0]).css("border-top-width"),10)
         return number
-        
-    $.fn.total_width = ->
-        # this hasn't been written yet
+
 )(jQuery)
 
 
 class Desktop
     constructor: (@parent) ->
         alert("Parent must be specified") unless @parent
-        @windows = [] # ordered list of windows [0] is on top
+        @open_windows = [] # ordered list of windows [0] is on top
+        @minimized_windows= [] # ordered from left to right in application bar
         # create application bar
-        #@parent.append($("<div id='application-bar'></div>"))
+        @init_application_bar()
         
+    init_application_bar: ->
+        @application_bar = $("<div id='application-bar'></div>")
+        @parent.append(@application_bar)
+    
+        # Application Launcher Button
+        @application_bar.append($('<div class="launch-button"></div>'))
+        
+        # Minimized application space
+        @application_bar.append(@minimized_applications = $('<div class="minimized-applications" />'))
+        
+    update_application_bar: ->
+        # go through minimized windows and create elements for them
+        @minimized_applications.empty()
+        for window in @minimized_windows
+            do (window) =>
+                minimized = $("<div class='minimized'>#{window.application.name()}</div>")
+                minimized.click => @restore_window(window)
+                @minimized_applications.append(minimized)
+
     load_application_from_url: (url, application_name) ->
         $('head').append $("<script src='#{url}'></script>")
         # Create instance of application
@@ -59,12 +78,32 @@ class Desktop
         # Load CSS for application
         new application(this).initialize()
         
+    minimize_window: (minimized_window) ->
+        # remove window from open_windows
+        @open_windows = (window for window in @open_windows when window != minimized_window)
+        
+        # add to minimized_windows
+        @minimized_windows.push minimized_window
+        @update_application_bar()
+        
+        minimized_window.hide()
+        
+    # bring a window back from being minimized
+    restore_window: (restored_window) ->
+        # remove window from minimized_windows
+        @minimized_windows = (window for window in @minimized_windows when window != restored_window)
+        
+        # add back to open windows
+        @open_windows.push restored_window
+        
+        @update_application_bar()
+        restored_window.restore()
 
     # factory method for creating a new window
-    new_window: (properties = {}) ->
+    new_window: (application, properties = {}) ->
 
-        window = new Window(this, properties)
-        @windows.push window
+        window = new Window(this, application, properties)
+        @open_windows.push window
 
         # Have to update the window after adding it to the root of the DOM, 
         #   otherwise you can't find out about the dimensions
@@ -72,27 +111,33 @@ class Desktop
         window.update_window()
         
         # Need to listen for clicks on the window to bring it to the front
-        window.mousedown (window, event) => this.window_click(window, event)
+        window.mousedown (window, event) => this.window_select(window, event)
 
         # Application is only allowed access to the body
         return window.body()
 
+    # called when a click event is completed on the window
+    window_clicked: (clicked_window, event) ->
+         
+    width: -> @parent.width()
+    height: -> @parent.height()
+
     # Called when a window is clicked to adjust
     #   its position relative to other windows
-    window_click: (clicked_window, event) ->
+    window_select: (clicked_window, event) ->
         z_index = 0
         new_window_order = []
-        for window in @windows when window isnt clicked_window
+        for window in @open_windows when window isnt clicked_window
             new_window_order.push window
             window.selected(false)
 
         new_window_order.push clicked_window
         clicked_window.selected(true)
 
-        @windows = new_window_order
+        @open_windows = new_window_order
 
         # set the z-index on the windows based on their new relative positions
-        @windows[index].z_index(index) for index in [0...@windows.length]
+        @open_windows[index].z_index(index) for index in [0...@open_windows.length]
 
 
     # starts a drag events
@@ -132,18 +177,60 @@ class Desktop
 
 
     class Window 
-        TITLE_BAR_HEIGHT: 25
         
+        class Position
+            constructor:(@top, @left, @bottom, @right) ->
+            height: -> @bottom - @top
+            width: -> @right - @left
+        
+        TITLE_BAR_HEIGHT: 25
+
         close_window: ->
             alert "Close"
-            
+
         minimize_window: ->
-            alert "Minimize"
+            @status = 'MINIMIZED'
+            @desktop.minimize_window this
+
+        restore: ->
+            @element.removeClass 'minimized maximized'
+            @element.show()
             
+            if @minimized()
+                console.log "HERE1"
+            else
+                console.log "HERE2"
+                @position = @previous_position
+                
+            @status = 'NORMAL'
+                
+            
+
         maximize_window: ->
-            alert "Maximize"
-        
-        constructor: (@desktop, properties) ->
+            if !@maximized()
+                console.log "max from not max"
+                @status = 'MAXIMIZED'
+                @previous_position = @position
+                @position = new Position(0, 0, @desktop.height(), @desktop.width())
+                # disallow resizing
+                @element.addClass("not-resizeable")
+            
+                # disallow dragging
+                # How to do this?
+            else
+                console.log "Max from max"
+                @restore()
+                
+            @update_window()
+
+
+        minimized: ->
+            @status == 'MINIMIZED'
+
+        maximized: ->
+            @status == 'MAXIMIZED'            
+
+        constructor: (@desktop, @application, properties) ->
             # @desktop must be specified
             alert('desktop must be specified') unless @desktop
             @element = $("<div class='window'></div>")
@@ -160,10 +247,7 @@ class Desktop
             initial_width = properties['width'] || 200
             initial_height = properties['height'] || 200
             
-            @top = 20
-            @left = 20
-            @bottom = @top + initial_height
-            @right = @left + initial_width
+            @position = new Position(20, 20, 20 + initial_height, 20 + initial_width)
 
             @element.append(@title_bar)
             @element.append(@body_element)
@@ -255,32 +339,29 @@ class Desktop
             @element.addClass("dragging")
 
         height: ->
-            @bottom - @top
-
+            @position.height()
+            
+        hide: ->
+            @element.addClass 'minimized'
+            
         # move the entire window
         update_position: (delta_x, delta_y) ->
-            @top += delta_y
-            @bottom += delta_y
-            @left += delta_x
-            @right += delta_x
+            @position = new Position(@position.top + delta_y, @position.left + delta_x, @position.bottom + delta_y, @position.right + delta_x)
             this.update_window()
                    
         # Change the aspect ratio of the window     
         # position: top/left/bottom/dight are keys
         update_resize:(position) ->
-            @top = position['top'] if position['top']
-            @left = position['left'] if position['left']
-            @bottom = position['bottom'] if position['bottom']
-            @right = position['right'] if position['right']
+            @position = new Position( position['top'] ? @position.top, position['left'] ? @position.left, position['bottom'] ? @position.bottom, position['right'] ? @position.right)
             this.update_window()
 
         # updates CSS for window based on Window object properties
         update_window: ->
-            @element.width(@right - @left)
-            @element.height(@bottom - @top)
-            @element.css("top", @top)
-            @element.css("left", @left)
-            @body_element.height(@height() - @title_bar.total_height())
+            @element.width(@position.width())
+            @element.height(@position.height())
+            @element.css("top", @position.top)
+            @element.css("left", @position.left)
+            @body_element.height(@position.height() - @title_bar.total_height())
             @body_element.width(@element.width())
                
         end_drag: ->
@@ -297,20 +378,12 @@ class Desktop
             else
                 @element.removeClass('selected')
             @is_selected
-        
 
 
-
-
+# base class for applications in Joe
 class JoeApplication
     
-    # stores the desktop object the application is associated with
     constructor: (@desktop) ->
-        
-    # Returns the desktop object the application is associated with
-    desktop: ->
-        @desktop
-    
 
 
 
@@ -321,19 +394,24 @@ class MyApplication extends JoeApplication
         super desktop
 
     name: ->
-        "Words!"
+        "Words! #{@word}"
 
     initialize: ->
         # As far as the application is concerned, the body is the window
-        @window = @desktop.new_window()
+        @window = @desktop.new_window(this)
         @window.html("<P>HI</P>")
         # set up a timer to start loading words
         @update_word()
-        #setInterval(( => @update_word()), 10000)
+        
+        # uncomment this to have it update the words periodically
+        #setInterval(( => @update_word()), 1000)
 
     update_word: ->
         $.getJSON("/words", (data) =>
+            @word = data[0]
             $(@window).html(data[0]))
+
+
 
 $(->
     # random crap for IE user-selectable in case I want it later
