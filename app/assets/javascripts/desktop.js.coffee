@@ -4,6 +4,10 @@
 # windows show up on top of each other when created, instead of either looking
 #   for an empty spot or offsetting each one
 # Disallow dragging when maximized
+# Maximized windows are too big
+# Nothing works right when the viewport is resized
+
+
 
 # jquery plugin for integrating mouse and touch events
 #   as well as specialized geometry operations
@@ -42,13 +46,13 @@
 )(jQuery)
 
 
+
 class Desktop
     
     # Stores information about the current positioning/location/size
     #   of the window
     class Position
         constructor:(@top, @left, @bottom, @right) ->
-            console.log "#{@top}, #{@left}, #{@bottom}, #{@right}"
         height: -> @bottom - @top
         width: -> @right - @left
     
@@ -208,25 +212,19 @@ class Desktop
                 
         maximize: ->
             if !@maximized()
-                console.log "max from not max"
                 @status = 'MAXIMIZED'
-                # disallow resizing
-                @element.addClass("not-resizeable")
             
                 # disallow dragging
                 # How to do this?
             else
                 @status = 'NORMAL'
-                console.log "Max from max"
                 @restore()
                 
             @update_window()
 
 
         maximized: ->
-            console.log "Checking maximized on #{@status}"
             @status == 'MAXIMIZED'            
-
 
         constructor: (@desktop, @application, properties) ->
             # @desktop must be specified
@@ -361,6 +359,10 @@ class Desktop
         update_window: ->
             
             if @minimized then @element.addClass "minimized" else @element.removeClass "minimized"
+            
+            # disallow resizing
+            if @maximized() then @element.addClass "not-resizeable" else @element.removeClass "not-resizeable"
+            
             
             if @maximized()
                 position = @desktop.maximized_position()
