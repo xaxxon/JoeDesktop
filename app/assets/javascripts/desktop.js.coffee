@@ -43,6 +43,16 @@
 
 
 class Desktop
+    
+    # Stores information about the current positioning/location/size
+    #   of the window
+    class Position
+        constructor:(@top, @left, @bottom, @right) ->
+            console.log "#{@top}, #{@left}, #{@bottom}, #{@right}"
+        height: -> @bottom - @top
+        width: -> @right - @left
+    
+    
     constructor: (@parent) ->
         alert("Parent must be specified") unless @parent
         @open_windows = [] # ordered list of windows [0] is on top
@@ -78,6 +88,10 @@ class Desktop
         # Load CSS for application
         new application(this).initialize()
         
+    # returns a position
+    maximized_position: ->
+        new Position( 0, 0, @parent.height(), @parent.width() )
+    
     minimize_window: (minimized_window) ->
         # remove window from open_windows
         @open_windows = (window for window in @open_windows when window != minimized_window)
@@ -85,8 +99,6 @@ class Desktop
         # add to minimized_windows
         @minimized_windows.push minimized_window
         @update_application_bar()
-        
-        minimized_window.hide()
         
     # bring a window back from being minimized
     restore_window: (restored_window) ->
@@ -178,57 +190,43 @@ class Desktop
 
     class Window 
         
-        class Position
-            constructor:(@top, @left, @bottom, @right) ->
-            height: -> @bottom - @top
-            width: -> @right - @left
         
         TITLE_BAR_HEIGHT: 25
 
-        close_window: ->
+        close: ->
             alert "Close"
 
-        minimize_window: ->
-            @status = 'MINIMIZED'
+        minimize: ->
+            @minimized = true
             @desktop.minimize_window this
+            @update_window()
 
         restore: ->
-            @element.removeClass 'minimized maximized'
-            @element.show()
             
-            if @minimized()
-                console.log "HERE1"
-            else
-                console.log "HERE2"
-                @position = @previous_position
+            @minimized = false
+            @update_window()    
                 
-            @status = 'NORMAL'
-                
-            
-
-        maximize_window: ->
+        maximize: ->
             if !@maximized()
                 console.log "max from not max"
                 @status = 'MAXIMIZED'
-                @previous_position = @position
-                @position = new Position(0, 0, @desktop.height(), @desktop.width())
                 # disallow resizing
                 @element.addClass("not-resizeable")
             
                 # disallow dragging
                 # How to do this?
             else
+                @status = 'NORMAL'
                 console.log "Max from max"
                 @restore()
                 
             @update_window()
 
 
-        minimized: ->
-            @status == 'MINIMIZED'
-
         maximized: ->
+            console.log "Checking maximized on #{@status}"
             @status == 'MAXIMIZED'            
+
 
         constructor: (@desktop, @application, properties) ->
             # @desktop must be specified
@@ -236,11 +234,17 @@ class Desktop
             @element = $("<div class='window'></div>")
             
             @title_bar = $("<div class='title-bar'</div>").height(@TITLE_BAR_HEIGHT)
-            @title_bar.append $("<div class='button close'></div>").click => @close_window()
-            @title_bar.append $("<div class='button minimize'></div>").click => @minimize_window()
-            @title_bar.append $("<div class='button maximize'></div>").click => @maximize_window()
+            @title_bar.append $("<div class='button close'></div>").click => @close()
+            @title_bar.append $("<div class='button minimize'></div>").click => @minimize()
+            @title_bar.append $("<div class='button maximize'></div>").click => @maximize()
             
-            
+            # Status is whether the window is a "normal" floating window or
+            #   a fixed-position 'maximized' window.  This is different than minimized
+            #   because minimized windows restore back to their previous state which
+            #   needs to be stored - a window can have status MAXIMIZED and have MINIMIZED be true
+            #   That just means when it is unminimized it will return to maximizedd
+            @status = "NORMAL"
+            @minimized = false
             
             @body_element = $("<div class='body'></div>")
                         
@@ -341,8 +345,6 @@ class Desktop
         height: ->
             @position.height()
             
-        hide: ->
-            @element.addClass 'minimized'
             
         # move the entire window
         update_position: (delta_x, delta_y) ->
@@ -357,11 +359,19 @@ class Desktop
 
         # updates CSS for window based on Window object properties
         update_window: ->
-            @element.width(@position.width())
-            @element.height(@position.height())
-            @element.css("top", @position.top)
-            @element.css("left", @position.left)
-            @body_element.height(@position.height() - @title_bar.total_height())
+            
+            if @minimized then @element.addClass "minimized" else @element.removeClass "minimized"
+            
+            if @maximized()
+                position = @desktop.maximized_position()
+            else
+                position = @position
+            
+            @element.width(position.width())
+            @element.height(position.height())
+            @element.css("top", position.top)
+            @element.css("left", position.left)
+            @body_element.height(position.height() - @title_bar.total_height())
             @body_element.width(@element.width())
                
         end_drag: ->
