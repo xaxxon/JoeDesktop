@@ -236,6 +236,7 @@ table {
     .body {
       background-color: green;
       position: relative;
+      width: 100%;
       &.dragging {
         display: none
       }

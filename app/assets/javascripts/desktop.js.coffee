@@ -4,7 +4,6 @@
 # windows show up on top of each other when created, instead of either looking
 #   for an empty spot or offsetting each one
 # Disallow dragging when maximized
-# Maximized windows are too big
 # Nothing works right when the viewport is resized
 
 
@@ -358,23 +357,22 @@ class Desktop
         # updates CSS for window based on Window object properties
         update_window: ->
             
+            # mark the window as minimized when it is minimized
             if @minimized then @element.addClass "minimized" else @element.removeClass "minimized"
             
-            # disallow resizing
+            # disallow resizing when maximized
             if @maximized() then @element.addClass "not-resizeable" else @element.removeClass "not-resizeable"
             
+            # pick the position to use based on whether the window is maximized
+            if @maximized() then position = @desktop.maximized_position() else position = @position
             
-            if @maximized()
-                position = @desktop.maximized_position()
-            else
-                position = @position
-            
+            # update the window css to represent it's intended position
             @element.width(position.width())
             @element.height(position.height())
             @element.css("top", position.top)
             @element.css("left", position.left)
             @body_element.height(position.height() - @title_bar.total_height())
-            @body_element.width(@element.width())
+
                
         end_drag: ->
             @element.removeClass("dragging")
@@ -390,6 +388,8 @@ class Desktop
             else
                 @element.removeClass('selected')
             @is_selected
+
+
 
 
 # base class for applications in Joe
