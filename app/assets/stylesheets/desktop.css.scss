@@ -144,8 +144,11 @@ table {
     left: 100px;
     top: 20px;
     
-    &.window.not-resizeable .resize {
-        display: none;
+    &.not-resizeable {
+        border: 0;
+        .resize {
+            display: none;
+        }
     }
     
     .resize {

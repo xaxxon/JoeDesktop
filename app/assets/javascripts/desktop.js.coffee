@@ -5,6 +5,7 @@
 #   for an empty spot or offsetting each one
 # Disallow dragging when maximized
 # Nothing works right when the viewport is resized
+#   - use $(window).resize -> window.width() <== to find out what the new height/widths are
 
 
 
@@ -54,7 +55,9 @@ class Desktop
         constructor:(@top, @left, @bottom, @right) ->
         height: -> @bottom - @top
         width: -> @right - @left
-    
+
+    window_resized: ->
+        #console.log "window resized: #{$(window).width()} x #{$(window).height()}"
     
     constructor: (@parent) ->
         alert("Parent must be specified") unless @parent
@@ -62,6 +65,7 @@ class Desktop
         @minimized_windows= [] # ordered from left to right in application bar
         # create application bar
         @init_application_bar()
+        $(window).resize => @window_resized()
         
     init_application_bar: ->
         @application_bar = $("<div id='application-bar'></div>")
@@ -170,14 +174,25 @@ class Desktop
         #   the part being dragged
         @parent.input_end (event) => this.end_drag event
         
-        # Notify the element being dragged that it is being dragged
-        @draggable.start_drag()
         
         # When update_drag gets called, the initial even will be the "previous" one
         @previous_drag_event = drag_start_event
+
+        # Don't start the drag until we get a first movement, so things
+        #   like button clicks don't cause the drag window visual effects
+        @drag_first_movement_detected = false
         
     # Called when a new movement is detected
     update_drag: (event) ->
+        
+        # is this the first movement detected?  if so, notify the dragged element
+        unless @drag_first_movement_detected
+            # Notify the element being dragged that it is being dragged
+            @draggable.start_drag()
+            @drag_first_movement_detected = true
+
+
+        
         delta_x = event.pageX - @previous_drag_event.pageX
         delta_y = event.pageY - @previous_drag_event.pageY
         @drag_callback(event.pageX, event.pageY, delta_x, delta_y)
@@ -188,7 +203,11 @@ class Desktop
     end_drag: (event) ->
         @parent.unbind_input_move()
         @parent.unbind_input_end()
-        @draggable.end_drag()
+        
+        # no need to notify of end of drag unless it was notified 
+        #   that one was started
+        if @drag_first_movement_detected
+            @draggable.end_drag()
 
 
     class Window 
@@ -306,8 +325,9 @@ class Desktop
             # END annoying resize bar stuff
 
             @title_bar.input_start (event) =>
-                @desktop.start_drag this, event, (nil, nil, delta_x, delta_y)=>
-                    this.update_position(delta_x, delta_y)
+                unless @maximized()
+                    @desktop.start_drag this, event, (nil, nil, delta_x, delta_y)=>
+                        this.update_position(delta_x, delta_y)
                     
             #@title_bar.bind 'touchstart', (event) =>
             #    @desktop.start_drag this, event, (nil, nil, delta_x, delta_y) =>
@@ -373,7 +393,9 @@ class Desktop
             @element.css("left", position.left)
             @body_element.height(position.height() - @title_bar.total_height())
 
-               
+        
+        # Called when the drag stops, the drag may not have been started
+        #    must be idempotent
         end_drag: ->
             @element.removeClass("dragging")
             
