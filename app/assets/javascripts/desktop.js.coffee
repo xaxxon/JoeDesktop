@@ -4,10 +4,9 @@
 # windows show up on top of each other when created, instead of either looking
 #   for an empty spot or offsetting each one
 # Disallow dragging when maximized
-# Nothing works right when the viewport is resized
+# height doesn't right when the viewport is resized - width works fine
 #   - use $(window).resize -> window.width() <== to find out what the new height/widths are
 
-# Verify input_start still works with touch devices
 
 # jquery plugin for integrating mouse and touch events
 #   as well as specialized geometry operations
@@ -279,6 +278,7 @@ class Desktop
             #@title_bar.css("background-image", "url(#{@application.get_icon_url})")
             @title_bar.append $("<img class='icon' src='#{@application.get_icon_url()}'></img>'")
                 
+            # block input_start so that the title_bar doesn't start dragging if the click starts on a button
             @title_bar.append $("<div class='button close'></div>").click( => @close() ).input_start(false)
             @title_bar.append $("<div class='button minimize'></div>").click( => @minimize()).input_start(false)
             @title_bar.append $("<div class='button maximize'></div>").click( => @maximize()).input_start(false)
