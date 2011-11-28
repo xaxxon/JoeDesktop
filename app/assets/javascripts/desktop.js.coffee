@@ -7,27 +7,42 @@
 # Nothing works right when the viewport is resized
 #   - use $(window).resize -> window.width() <== to find out what the new height/widths are
 
-
+# Verify input_start still works with touch devices
 
 # jquery plugin for integrating mouse and touch events
 #   as well as specialized geometry operations
 ( ($)->
-    $.fn.input_start = (callback)->
+    
+    # This only responds to primary clicks
+    # A "false" callback will just return false
+    #   TODO: This may not work for touch devices
+    $.fn.input_start = (callback, attributes = {}) ->
         this.each ->
-            $(this).bind("mousedown touchstart", callback)
-            
+            $(this).bind "mousedown touchstart", (event)->
+                    
+                return false if callback == false
+                                
+                # if which is 0, that means touch even, 1 means primary mouse click
+                callback(event) if event.which == 1 or event.which == 0
+
+                # clicks show up as touch starts first, need to return true to
+                #   keep the event bubbling up to show up as a click event, but
+                #   the default actions should not be taken
+                event.preventDefault()
+                true
+
     $.fn.unbind_input_start = ->
         this.each ->
             $(this).unbind("mousedown touchstart")
-                    
+
     $.fn.input_move = (callback)->
         this.each ->
             $(this).bind("mousemove touchmove", callback)
-            
+
     $.fn.unbind_input_move = ->
         this.each ->
             $(this).unbind("mousemove touchmove")
-            
+
     $.fn.input_end = (callback)->
         this.each ->
             $(this).bind("mouseup touchend", callback)
@@ -53,8 +68,17 @@ class Desktop
     #   of the window
     class Position
         constructor:(@top, @left, @bottom, @right) ->
-        height: -> @bottom - @top
-        width: -> @right - @left
+        height: (height) -> @bottom - @top
+        width: (width) -> @right - @left
+        set_max_height: -> @max_height = true; this
+        set_max_width: -> @max_width = true; this
+        set_max_dimensions: -> @set_max_width(); set_max_height()
+        apply_to_element: (element) ->
+            if @max_height then element.css("height", "100%") else element.width(@width())
+            if @max_width then element.css("width", "100%") else element.height(@height())
+            element.css("top", @top)
+            element.css("left", @left)
+            
 
     window_resized: ->
         #console.log "window resized: #{$(window).width()} x #{$(window).height()}"
@@ -97,7 +121,7 @@ class Desktop
         
     # returns a position
     maximized_position: ->
-        new Position( 0, 0, @parent.height(), @parent.width() )
+        new Position( 0, 0, @parent.height(), @parent.width() ).set_max_width().set_max_height()
     
     minimize_window: (minimized_window) ->
         # remove window from open_windows
@@ -250,9 +274,14 @@ class Desktop
             @element = $("<div class='window'></div>")
             
             @title_bar = $("<div class='title-bar'</div>").height(@TITLE_BAR_HEIGHT)
-            @title_bar.append $("<div class='button close'></div>").click => @close()
-            @title_bar.append $("<div class='button minimize'></div>").click => @minimize()
-            @title_bar.append $("<div class='button maximize'></div>").click => @maximize()
+            
+            # Set the application icon in the status bar
+            #@title_bar.css("background-image", "url(#{@application.get_icon_url})")
+            @title_bar.append $("<img class='icon' src='#{@application.get_icon_url()}'></img>'")
+                
+            @title_bar.append $("<div class='button close'></div>").click( => @close() ).input_start(false)
+            @title_bar.append $("<div class='button minimize'></div>").click( => @minimize()).input_start(false)
+            @title_bar.append $("<div class='button maximize'></div>").click( => @maximize()).input_start(false)
             
             # Status is whether the window is a "normal" floating window or
             #   a fixed-position 'maximized' window.  This is different than minimized
@@ -387,10 +416,7 @@ class Desktop
             if @maximized() then position = @desktop.maximized_position() else position = @position
             
             # update the window css to represent it's intended position
-            @element.width(position.width())
-            @element.height(position.height())
-            @element.css("top", position.top)
-            @element.css("left", position.left)
+            position.apply_to_element(@element)
             @body_element.height(position.height() - @title_bar.total_height())
 
         
@@ -419,7 +445,10 @@ class JoeApplication
     
     constructor: (@desktop) ->
 
-
+    # Returns the URL to the image to be used for the application
+    #   if unimplemented, results in default image
+    get_icon_url: ->
+        '/assets/coffee-icon-77x77.png'
 
 # test application
 class MyApplication extends JoeApplication
