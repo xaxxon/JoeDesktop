@@ -18,8 +18,20 @@
     $.fn.input_start = (callback, attributes = {}) ->
         this.each ->
             $(this).bind "mousedown touchstart", (event)->
-                    
-                return false if callback == false
+                console.log "Got #{event.type} event"
+                console.log callback
+                if callback == false
+                    if event.type == 'mousedown'
+                        console.log "Mousedown, returning false"
+                        return false
+                    else
+                        # Want to make the click event fire, so make sure nothing handles
+                        #   this when the callback is false, so the browser sees the event
+                        #   as unhandled and tries other events that simulate mouse behavior
+                        console.log "Not mousedown, returning false"
+                        event.stopPropagation()
+                        event.stopDefaultAction()
+                        return false
                                 
                 # if which is 0, that means touch even, 1 means primary mouse click
                 callback(event) if event.which == 1 or event.which == 0
