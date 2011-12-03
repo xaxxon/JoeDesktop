@@ -167,7 +167,7 @@ class Desktop
     update_desktop: ->
         for application in @registered_applications
             do (application) =>
-                icon_url = application.get_icon_url()
+                icon_url = (new application).get_icon_url()
                 @desktop_element.append $("<img class='icon' src='#{icon_url}'></img>'").click => 
                     @initialize_application application
             
@@ -534,8 +534,10 @@ class JoeApplication
     # Returns the URL to the image to be used for the application
     #   if unimplemented, results in default image
     # Override class method to set application-specific icon
-    @get_icon_url: ->
+    get_icon_url: ->
         '/assets/coffee-icon-77x77.png'
+        
+    
 
 
 # External applications will need to be able to access the Desktop
