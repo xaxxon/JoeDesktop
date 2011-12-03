@@ -94,6 +94,13 @@ table {
   buffer: 0;
   padding: 0;
   
+  .icon {
+    height: 32px;
+    width: 32px;
+    margin: 16px;
+    float: left;
+  }
+  
   #application-bar {
     height: 100px;
     width: 100%;
