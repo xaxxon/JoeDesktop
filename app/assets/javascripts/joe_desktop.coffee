@@ -177,7 +177,7 @@ class Desktop
     ICON_SIZE = 32
     GRID_SIZE = 64
     update_desktop: ->
-        @desktop_element.empty()
+        #@desktop_element.empty()
         for application in @registered_applications
             do (application) =>
                 icon_url = (new application).get_icon_url()
