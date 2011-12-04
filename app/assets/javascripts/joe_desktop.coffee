@@ -138,6 +138,16 @@ class Desktop
         @init_application_bar()
         $(window).resize => @window_resized()
         @registered_applications = []
+        
+    init_clock: (parent_element)->
+        parent_element.append( @clock = $("<div class='clock'></div>") )
+        @update_clock()
+        @clock_interval = setInterval @update_clock, 1000
+        
+        
+    update_clock: =>
+        console.log "Updating clock"
+        @clock.html("#{(new Date).getHours()}:#{(new Date).getMinutes().toFixed 0}")
 
         
     init_application_bar: ->
@@ -149,6 +159,8 @@ class Desktop
         
         # Minimized application space
         @application_bar.append(@minimized_applications = $('<div class="minimized-applications" />'))
+
+        @init_clock(@minimized_applications)
 
         
     update_application_bar: ->
@@ -165,15 +177,16 @@ class Desktop
     ICON_SIZE = 32
     GRID_SIZE = 64
     update_desktop: ->
+        @desktop_element.empty()
         for application in @registered_applications
             do (application) =>
                 icon_url = (new application).get_icon_url()
-                @desktop_element.append $("<img class='icon' src='#{icon_url}'></img>'").click => 
+                @desktop_element.append $("<img class='icon' src='#{icon_url}'></img>'").dblclick => 
                     @initialize_application application
             
     
     initialize_application: (application) ->
-        (new application this).initialize()
+        (new application this)._initialize()
 
     load_application_from_url: (url, application_name) ->
         $('head').append $("<script src='#{url}'></script>")
@@ -210,6 +223,7 @@ class Desktop
         restored_window.restore()
 
     # factory method for creating a new window
+    #   requires the application be associated with it
     new_window: (application, properties = {}) ->
 
         window = new Window(this, application, properties)
@@ -217,7 +231,7 @@ class Desktop
 
         # Have to update the window after adding it to the root of the DOM, 
         #   otherwise you can't find out about the dimensions
-        @desktop_element.append(window.element)
+        @desktop_element.append(window.window_element)
         window.update_window()
         
         # Need to listen for clicks on the window to bring it to the front
@@ -311,7 +325,8 @@ class Desktop
         MIN_WINDOW_WIDTH: 100
 
         close: ->
-            alert "Close"
+            @application._terminate()
+            @window_element.remove()
 
         minimize: ->
             @minimized = true
@@ -337,13 +352,14 @@ class Desktop
 
 
         maximized: ->
-            @status == 'MAXIMIZED'            
+            @status == 'MAXIMIZED'
 
         constructor: (@desktop, @application, properties) ->
             # @desktop must be specified
             alert('desktop must be specified') unless @desktop
-            @element = $("<div class='window'></div>")
-                
+            @window_element = $("<div class='window'></div>")
+            
+            console.log "Creating window"
             
             @title_bar = $("<div class='title-bar'</div>").height(@TITLE_BAR_HEIGHT)
             
@@ -371,8 +387,8 @@ class Desktop
             
             @position = new Position(20, 20, 20 + initial_height, 20 + initial_width)
 
-            @element.append(@title_bar)
-            @element.append(@body_element)
+            @window_element.append(@title_bar)
+            @window_element.append(@body_element)
 
 
             @body_element.height(@height() - @title_bar.total_height())
@@ -381,12 +397,12 @@ class Desktop
             @left_resize_bar = $("<div class='resize side left'></div>").input_start (event) =>
                 @desktop.start_drag this, event, (x) =>
                     this.update_resize({left: x})
-            @element.append @left_resize_bar
+            @window_element.append @left_resize_bar
 
             @right_resize_bar = $("<div class='resize side right'></div>").input_start (event) =>
                 @desktop.start_drag this, event, (x) =>
                     this.update_resize({right: x})
-            @element.append @right_resize_bar
+            @window_element.append @right_resize_bar
             
             @top_resize_bar = $("<div class='resize corner top'></div>").input_start (event) =>
                 @desktop.start_drag this, event, (nil, y) =>
@@ -404,7 +420,7 @@ class Desktop
                     this.update_resize({top: y, right: x})
             
             @top_resize_bar.append(top_right_resize)
-            @element.append @top_resize_bar
+            @window_element.append @top_resize_bar
             
             @bottom_resize_bar = $("<div class='resize bottom'></div>").input_start (event) =>
                 @desktop.start_drag this, event, (nil, y) =>
@@ -423,7 +439,7 @@ class Desktop
                     this.update_resize({bottom: y, right: x})
                 
             @bottom_resize_bar.append(bottom_right_resize)
-            @element.append @bottom_resize_bar
+            @window_element.append @bottom_resize_bar
             # END annoying resize bar stuff
 
             @title_bar.input_start (event) =>
@@ -438,19 +454,16 @@ class Desktop
 
             # can't call update_window from here because it's not attached to 
             #   the root of the DOM
-
+            console.log "Done creating window"
         # other things can register for events on the window
         mousedown: (callback) =>
-            @element.input_start (event)=> 
+            @window_element.input_start (event)=> 
                 callback(this, event)
 
         # optionally sets and always returns the current/new z-index
         z_index: (z_index) ->
-            @element.css('z-index', z_index) if z_index?
-            return @element.css('z-index')
-
-        element: ->
-            @element
+            @window_element.css('z-index', z_index) if z_index?
+            return @window_element.css('z-index')
 
         title_bar: ->
             @title_bar
@@ -459,7 +472,7 @@ class Desktop
             @body_element
 
         start_drag: ->
-            @element.addClass("dragging")
+            @window_element.addClass("dragging")
 
         height: ->
             @position.height()
@@ -493,23 +506,23 @@ class Desktop
         update_window: ->
             
             # mark the window as minimized when it is minimized
-            if @minimized then @element.addClass "minimized" else @element.removeClass "minimized"
+            if @minimized then @window_element.addClass "minimized" else @window_element.removeClass "minimized"
             
             # disallow resizing when maximized
-            if @maximized() then @element.addClass "not-resizeable" else @element.removeClass "not-resizeable"
+            if @maximized() then @window_element.addClass "not-resizeable" else @window_element.removeClass "not-resizeable"
             
             # pick the position to use based on whether the window is maximized
             if @maximized() then position = @desktop.maximized_position() else position = @position
             
             # update the window css to represent it's intended position
-            position.apply_to_element(@element)
+            position.apply_to_element(@window_element)
             @body_element.height(position.height() - @title_bar.total_height())
 
         
         # Called when the drag stops, the drag may not have been started
         #    must be idempotent
         end_drag: ->
-            @element.removeClass("dragging")
+            @window_element.removeClass("dragging")
             
         # sets whether this window is selected if is_selected is specified
         # returns whether this window is selected
@@ -518,11 +531,10 @@ class Desktop
                 @is_selected = is_selected
                 
             if @is_selected
-                @element.addClass('selected')
+                @window_element.addClass('selected')
             else
-                @element.removeClass('selected')
+                @window_element.removeClass('selected')
             @is_selected
-
 
 
 
@@ -536,8 +548,18 @@ class JoeApplication
     # Override class method to set application-specific icon
     get_icon_url: ->
         '/assets/coffee-icon-77x77.png'
+      
+    # Called when the applicaiton is started
+    #   subclasses MUST NOT override this, but instead initialize
+    _initialize: ->
+        console.log "Initializing application"
+        @initialize?()
         
-    
+    # Called when the application is terminated
+    #   subclasses MUST NOT override _terminate, but instead terminate
+    _terminate: ->
+        console.log "Terminating application"
+        @terminate?()
 
 
 # External applications will need to be able to access the Desktop

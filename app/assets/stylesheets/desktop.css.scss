@@ -94,11 +94,24 @@ table {
   buffer: 0;
   padding: 0;
   
+  /* desktop icons */
   > .icon {
     height: 32px;
     width: 32px;
-    margin: 16px;
+    padding: 8px;
+    margin: 8px;
     float: left;
+    border: 2px solid gray;
+    background-color: rgba(64,64,64,.5);
+    
+    &:hover {
+        background-color: rgba(96, 96, 96, .75);
+    }
+    
+    &.selected {
+      background-color: rgba(96, 96, 96, .75);
+    }
+    
   }
   
   #application-bar {
@@ -107,6 +120,12 @@ table {
     background-color: gray;
     position: absolute;
     bottom: 0;
+    
+    .clock {
+        float: right;
+        padding: 5px;
+        border: 2px solid gray;
+    }
     
     .launch-button {
         float: left;

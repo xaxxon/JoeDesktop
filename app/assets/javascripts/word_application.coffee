@@ -14,12 +14,21 @@ class WordApplication extends JoeApplication
         @update_word()
 
         # uncomment this to have it update the words periodically
-        #setInterval(( => @update_word()), 1000)
+        @timer = setInterval(( => @update_word()), 1000)
+
+    terminate: ->
+        # Make sure to stop requesting new words when the app ends
+        clearInterval @timer
 
     update_word: ->
+        console.log "Updating word"
         $.getJSON("/words", (data) =>
             @word = data[0]
             $(@window).html(data[0]))
+            
+    get_icon_url: ->
+        'http://www.gettyicons.com/free-icons/101/aviation/png/32/parachute_32.png'
+
 
 
 window['WordApplication'] = WordApplication

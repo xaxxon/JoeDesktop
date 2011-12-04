@@ -13,5 +13,6 @@ $(->
     window['desktop'] = desktop # export desktop globally
     
     desktop.register_application WordApplication
+    desktop.register_application JoeApplication
 )
 
