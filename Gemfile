@@ -21,6 +21,13 @@ gem 'jquery-rails'
 gem 'execjs'
 gem 'therubyracer'
 
+gem 'sys-cpu'
+gem 'sys-admin'
+gem 'sys-uname'
+gem 'sys-uptime'
+gem 'sys-host'
+gem 'sys-filesystem'
+
 # Use unicorn as the web server
 # gem 'unicorn'
 

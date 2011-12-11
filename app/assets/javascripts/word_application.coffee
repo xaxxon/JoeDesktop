@@ -21,7 +21,6 @@ class WordApplication extends JoeApplication
         clearInterval @timer
 
     update_word: ->
-        console.log "Updating word"
         $.getJSON("/words", (data) =>
             @word = data[0]
             $(@window).html(data[0]))

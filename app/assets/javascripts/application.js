@@ -6,4 +6,7 @@
 //
 //= require jquery
 //= require jquery_ujs
-//= require_tree
+//= require sprintf
+//= require joe_desktop
+//= require desktop
+

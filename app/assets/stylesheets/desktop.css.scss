@@ -100,7 +100,7 @@ table {
     width: 32px;
     padding: 8px;
     margin: 8px;
-    float: left;
+    position: absolute;
     border: 2px solid gray;
     background-color: rgba(64,64,64,.5);
     
@@ -115,7 +115,7 @@ table {
   }
   
   #application-bar {
-    height: 100px;
+    height: 80px;
     width: 100%;
     background-color: gray;
     position: absolute;
@@ -125,21 +125,21 @@ table {
         float: right;
         padding: 5px;
         border: 2px solid gray;
+        font-weight: bold;
+        color: black;
     }
     
     .launch-button {
         float: left;
-        height: 80%;
+        height: 100%;
         width: 80px;
-        background-color: pink;
-        border: 2px solid black;
+        background-color: dark-gray;
+        border-right: 2px solid black;
     }
     
     .minimized-applications {
-        height: 80%;
-        background-color: purple;
-        border: 2px solid black;
-        
+        height: 100%;
+        border: 0;
         .minimized {
             float: left;
             border: 2px solid green;
@@ -178,7 +178,13 @@ table {
         }
     }
     
-    .resize {
+	// don't show resize except on selected window
+	.resize {
+		display: none;
+	}
+
+    &.selected .resize {
+		display: block;
         background-color: rgba(196,196,0, 0);
         position: absolute;
         width: 10px;

@@ -4,7 +4,9 @@
 #   for an empty spot or offsetting each one
 # height doesn't right when the viewport is resized - width works fine
 #   - use $(window).resize -> window.width() <== to find out what the new height/widths are
-
+# Desktop Icons are flickery as the window is resized because it doesn't only
+#   remake the icons when they need to move, it does it on each firing of resize()
+#   - should probably just reposition the icons, not recreate the DOM elements
 
 # jquery plugin for integrating mouse and touch events
 #   as well as specialized geometry operations
@@ -37,7 +39,7 @@
                 $(this).right_up (event) ->
                     if event.which != 3
                         return true;
-                        
+
                     callback(event)
                     $(this).unbind "mouseup mouseout"
                     
@@ -53,17 +55,14 @@
     $.fn.input_start = (callback, attributes = {}) ->
         this.each ->
             $(this).bind "mousedown touchstart", (event)->
-                console.log "Got #{event.type} event"
-                console.log callback
                 if callback == false
                     if event.type == 'mousedown'
-                        console.log "Mousedown, returning false"
                         return false
                     else
                         # Want to make the click event fire, so make sure nothing handles
                         #   this when the callback is false, so the browser sees the event
                         #   as unhandled and tries other events that simulate mouse behavior
-                        console.log "Not mousedown, returning false"
+                        
                         event.stopPropagation()
                         event.stopDefaultAction() # <== what is this?  This doesn't exist
                         return false
@@ -106,7 +105,7 @@
 
 )(jQuery)
 
-
+asArray = (args) -> if $.isArray args then args else if args? then [args] else []
 
 class Desktop
     
@@ -128,6 +127,7 @@ class Desktop
 
     window_resized: ->
         #console.log "window resized: #{$(window).width()} x #{$(window).height()}"
+        @update_desktop()
 
     
     constructor: (@desktop_element) ->
@@ -138,18 +138,34 @@ class Desktop
         @init_application_bar()
         $(window).resize => @window_resized()
         @registered_applications = []
-        
+
     init_clock: (parent_element)->
         parent_element.append( @clock = $("<div class='clock'></div>") )
         @update_clock()
         @clock_interval = setInterval @update_clock, 1000
-        
-        
-    update_clock: =>
-        console.log "Updating clock"
-        @clock.html("#{(new Date).getHours()}:#{(new Date).getMinutes().toFixed 0}")
 
+
+    update_clock: =>
+        @clock.html("#{sprintf "%02d", (new Date).getHours()}:#{sprintf "%02d", (new Date).getMinutes()}")
+
+    # Load an arbitrary javascript file into the current page
+    # Used for loading application javascript
+    _inject_javascript: (url) ->
+        script = document.createElement( 'script' )
+        script.type = 'text/javascript'
+        script.src = url
+        $('head').append script
         
+    # Load an arbitrary CSS file into the page
+    # Used for loading application-specific CSS
+    _inject_css: (url) ->
+        link = $("<link />")
+        link.rel = 'stylesheet'
+        link.type = 'text/css'
+        link.href = url
+        $('head').append link
+
+
     init_application_bar: ->
         @application_bar = $("<div id='application-bar'></div>")
         @desktop_element.append(@application_bar)
@@ -177,26 +193,39 @@ class Desktop
     ICON_SIZE = 32
     GRID_SIZE = 64
     update_desktop: ->
-        #@desktop_element.empty()
-        for application in @registered_applications
+        $('#desktop > .icon').remove()
+        for application, i in @registered_applications
             do (application) =>
+                
+                # determine number of icons that can be placed vertically 
+                #   based on the current height of the window
+                icons_per_column = Math.floor($(window).height()/GRID_SIZE)
+                column = Math.floor(i / icons_per_column)
+                row = i % icons_per_column
+                
                 icon_url = (new application).get_icon_url()
-                @desktop_element.append $("<img class='icon' src='#{icon_url}'></img>'").dblclick => 
+                icon = $("<img class='icon' src='#{icon_url}'></img>'")
+                    
+                icon.css("left", column * GRID_SIZE)
+                icon.css("top", row * GRID_SIZE)
+                icon.dblclick => 
                     @initialize_application application
+                @desktop_element.append icon
             
     
     initialize_application: (application) ->
         (new application this)._initialize()
 
     load_application_from_url: (url, application_name) ->
-        $('head').append $("<script src='#{url}'></script>")
+        @_inject_javascript(url)
         # Create instance of application
+        for css in asArray (new window[application_name]).get_css_url()
+            @_inject_css application_css
         
     # Takes the constructor for the application object
     register_application: (application) ->
         @registered_applications.push application
         @update_desktop()
-
 
 
     # returns a position
@@ -229,13 +258,15 @@ class Desktop
         window = new Window(this, application, properties)
         @open_windows.push window
 
+        @window_select window
+
         # Have to update the window after adding it to the root of the DOM, 
         #   otherwise you can't find out about the dimensions
         @desktop_element.append(window.window_element)
         window.update_window()
         
         # Need to listen for clicks on the window to bring it to the front
-        window.mousedown (window, event) => this.window_select(window, event)
+        window.mousedown (window, event) => @window_select(window)
 
         # Application is only allowed access to the body
         return window.body()
@@ -248,7 +279,7 @@ class Desktop
 
     # Called when a window is clicked to adjust
     #   its position relative to other windows
-    window_select: (clicked_window, event) ->
+    window_select: (clicked_window) ->
         z_index = 0
         new_window_order = []
         for window in @open_windows when window isnt clicked_window
@@ -359,7 +390,7 @@ class Desktop
             alert('desktop must be specified') unless @desktop
             @window_element = $("<div class='window'></div>")
             
-            console.log "Creating window"
+            
             
             @title_bar = $("<div class='title-bar'</div>").height(@TITLE_BAR_HEIGHT)
             
@@ -454,7 +485,7 @@ class Desktop
 
             # can't call update_window from here because it's not attached to 
             #   the root of the DOM
-            console.log "Done creating window"
+            
         # other things can register for events on the window
         mousedown: (callback) =>
             @window_element.input_start (event)=> 
@@ -518,18 +549,19 @@ class Desktop
             position.apply_to_element(@window_element)
             @body_element.height(position.height() - @title_bar.total_height())
 
-        
+
         # Called when the drag stops, the drag may not have been started
         #    must be idempotent
         end_drag: ->
             @window_element.removeClass("dragging")
-            
+
         # sets whether this window is selected if is_selected is specified
         # returns whether this window is selected
         selected: (is_selected) ->
+            console.log is_selected
             if is_selected?
                 @is_selected = is_selected
-                
+
             if @is_selected
                 @window_element.addClass('selected')
             else
@@ -548,17 +580,26 @@ class JoeApplication
     # Override class method to set application-specific icon
     get_icon_url: ->
         '/assets/coffee-icon-77x77.png'
-      
+
+    # Returns a css file associated with the application
+    # - can return single url string or an array of url
+    get_css_url: ->
+        null
+
+    # Call this when you want the title to be updated, as the application
+    #   has no direct control over the title, that's managed at the Window 
+    #   and Desktoplevel
+    update_title: ->
+
+
     # Called when the applicaiton is started
     #   subclasses MUST NOT override this, but instead initialize
     _initialize: ->
-        console.log "Initializing application"
         @initialize?()
-        
+
     # Called when the application is terminated
     #   subclasses MUST NOT override _terminate, but instead terminate
     _terminate: ->
-        console.log "Terminating application"
         @terminate?()
 
 

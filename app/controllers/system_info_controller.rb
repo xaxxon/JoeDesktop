@@ -1,0 +1,2 @@
+class SystemInfoController < ApplicationController
+end
